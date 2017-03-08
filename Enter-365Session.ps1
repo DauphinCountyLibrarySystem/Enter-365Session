@@ -2,9 +2,25 @@
 # Write-Host "Press any key to continue ..."
 # $x = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 # $UserCredential = Get-Credential
+$ErrorActionPreference = "Stop"
+
 
 [string]$user = [Environment]::UserName+'@'+(Get-ADDomain).DNSRoot
-$pass = cat $PSScriptRoot'\string.txt' | ConvertTo-SecureString
+
+Try {
+  $pass = cat $PSScriptRoot'\securestring.txt' | ConvertTo-SecureString
+} Catch {
+  Write-Output " "
+  Write-Output "Failed to retrieve passsword from securestring.txt. Maybe try a new password?"
+  Read-Host " " -AsSecureString | ConvertFrom-SecureString | Out-File $PSScriptRoot'\securestring.txt'
+  Try {
+    $pass = cat $PSScriptRoot'\securestring.txt' | ConvertTo-SecureString
+    } Catch {
+      Write-Output "Well clearly that didn't work."
+      Write-Error $_.Exception
+    }
+}
+
 $UserCredential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $user,$pass
 
 Try {
@@ -15,16 +31,17 @@ Try {
 } Catch {
   
   Write-Error $_.Exception
+  Write-Output Exiting.
   Exit
   
 }
 
 Write-Output " "
 Write-Output .
-Write-Output 'Remember to close session with: Get-PSSession `| Remove-PSSession'
+Write-Output 'Remember to close session with: Get-PSSession | Remove-PSSession'
 
 Function Global:prompt {
-	Write-Host '[Office365] &'$pwd.ProviderPath -NoNewLine -ForegroundColor "DarkGray"
-	Write-Host "`n>" -NoNewLine -ForegroundColor "DarkGray"
-	Return ' '
+  Write-Host '[Office365] &'$pwd.ProviderPath -NoNewLine -ForegroundColor "DarkGray"
+  Write-Host "`n>" -NoNewLine -ForegroundColor "DarkGray"
+  Return ' '
 }
